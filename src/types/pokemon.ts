@@ -7,3 +7,12 @@ export interface PokemonInfo {
   speed: number;
   img: string;
 }
+
+export interface PokemonsObj {
+  first: PokemonInfo;
+  second: PokemonInfo;
+}
+
+export interface State {
+  pokemons?: PokemonsObj;
+}

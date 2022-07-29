@@ -1,14 +1,47 @@
 import { createRouter } from "./context";
 import { z } from "zod";
 import axios from "axios";
-import { PokemonInfo } from "../../types/pokemon";
+import { PokemonInfo, PokemonsObj, State } from "../../types/pokemon";
 
-export const pokeApiRouter = createRouter().query("getPokemons", {
-  async resolve() {
-    const TwoPokemons = await getTwoPokemons();
-    return { TwoPokemons };
-  },
-});
+let state: State = {};
+
+export const pokeApiRouter = createRouter()
+  .mutation("newPokemons", {
+    async resolve() {
+      state.pokemons = await getTwoPokemons();
+
+      const msg = `${state.pokemons.first.name} and ${state.pokemons.second.name} appeared`;
+      return { logMsg: msg };
+    },
+  })
+  .query("getState", {
+    resolve() {
+      return state;
+    },
+  })
+  .mutation("randomAttack", {
+    // input: z.object({
+    //   num: z.string(),
+    // }),
+    resolve(/*{ input }*/) {
+      const roll = Math.random() < 0.5;
+      const activePokemon = roll ? state.pokemons!.first : state.pokemons!.second;
+      const inactivePokemon = roll ? state.pokemons!.second : state.pokemons!.first;
+      const msg = `${activePokemon.name} attacks ${inactivePokemon.name}`;
+
+      const roll2 = Math.random() < 0.2;
+      if (roll2) return { logMsg: msg + ", but misses!" };
+
+      const effectiveAttack =
+        (activePokemon.attack / 2) * (1 - inactivePokemon.defense / 100);
+      const effectiveAttackRounded = Math.round(effectiveAttack * 100) / 100;
+
+      inactivePokemon.hp -= effectiveAttackRounded;
+      return {
+        logMsg: msg + ` for ${effectiveAttackRounded} damage`,
+      };
+    },
+  });
 
 const getTwoPokemons = async () => {
   const firstPokemon = await fetchPokemon();
@@ -25,7 +58,7 @@ const getTwoPokemons = async () => {
   const { id: id_1, name: name_1, stats: stats_1 } = firstPokemon;
   const firstPokemonStripped: PokemonInfo = {
     id: id_1,
-    name: name_1,
+    name: name_1[0].toUpperCase() + name_1.substring(1),
     hp: stats_1[0].base_stat,
     attack: stats_1[1].base_stat,
     defense: stats_1[2].base_stat,
@@ -36,14 +69,14 @@ const getTwoPokemons = async () => {
   const { id: id_2, name: name_2, stats: stats_2 } = secondPokemon;
   const secondPokemonStripped: PokemonInfo = {
     id: id_2,
-    name: name_2,
+    name: name_2[0].toUpperCase() + name_2.substring(1),
     hp: stats_2[0].base_stat,
     attack: stats_2[1].base_stat,
     defense: stats_2[2].base_stat,
     speed: stats_2[5].base_stat,
     img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id_2}.png`,
   };
-  return { firstPokemon: firstPokemonStripped, secondPokemon: secondPokemonStripped };
+  return { first: firstPokemonStripped, second: secondPokemonStripped };
 };
 
 const fetchPokemon = async (takenID?: number) => {
