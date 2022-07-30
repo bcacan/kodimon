@@ -2,7 +2,7 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { trpc } from "../utils/trpc";
 import Link from "next/link";
-import { PokemonInfo, PokemonsObj } from "../types/pokemon";
+import { ButtonProps, PokemonInfo, PokemonsObj } from "../types/pokemon";
 import { useEffect, useState } from "react";
 
 const FightScreen: NextPage = () => {
@@ -121,8 +121,25 @@ const PokeStage = ({ pokemons }: { pokemons: PokemonsObj }) => {
   return (
     <div className="w-full flex justify-evenly">
       <ShowPokemon pokeInfo={pokemons.first} />
-      <img src="/assets/arrow.svg" />
+      <div className="flex flex-col justify-center gap-8">
+        <img src="/assets/arrow.svg" className="mx-auto" />
+        <Button text="Attack!" onClick={() => console.log("click")} />
+      </div>
       <ShowPokemon pokeInfo={pokemons.second} />
     </div>
+  );
+};
+
+const Button = (props: ButtonProps) => {
+  const { text, disabled, onClick } = props;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="p-2 px-14 rounded-full ring-4 ring-blue-300 bg-blue-500 text-white hover:ring hover:ring-blue-400 hover:bg-blue-600"
+    >
+      {text}
+    </button>
   );
 };

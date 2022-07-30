@@ -17,3 +17,9 @@ export interface PokemonsObj {
 export interface State {
   pokemons?: PokemonsObj;
 }
+
+export interface ButtonProps {
+  text: string;
+  onClick(): void;
+  disabled?: boolean;
+}
