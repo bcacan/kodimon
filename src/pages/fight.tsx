@@ -52,13 +52,13 @@ const FightScreen: NextPage = () => {
       </Head>
       <div className="container h-screen m-auto">
         <Link href="/">
-          <button className="p-2 block bg-blue-300">{`<- End game`}</button>
+          <button className="p-2 block bg-blue-light">{`<- End game`}</button>
         </Link>
-        <button className="m-2 p-2 block bg-blue-200" onClick={initPokemons}>
+        <button className="m-2 p-2 block bg-blue" onClick={initPokemons}>
           init / refetch
         </button>
 
-        <button className="m-2 p-2 block bg-blue-200" onClick={buttonHandler}>
+        <button className="m-2 p-2 block bg-blue" onClick={buttonHandler}>
           click
         </button>
         <main className="container mx-auto flex flex-col items-center p-4 gap-y-20">
@@ -72,7 +72,7 @@ const FightScreen: NextPage = () => {
             value={log}
             disabled
             rows={10}
-            className="p-6 bg-gray-600 text-white w-10/12 rounded-xl"
+            className="overflow-y-scroll scrollbar p-6 bg-yellow-light   w-10/12 border-solid border-2 border-yellow rounded-xl"
           ></textarea>
         </main>
       </div>
@@ -89,8 +89,8 @@ const PokeStage = ({ pokemons }: { pokemons: PokemonsObj }) => {
 
     const HPbar = () => {
       return (
-        <div className="border-solid border-2 border-red-800 rounded-2xl">
-          <div className="h-2.5 bg-red-500  rounded-2xl"></div>
+        <div className="border-solid border-2 border-red rounded-2xl">
+          <div className="h-2.5 bg-red-light rounded-2xl"></div>
         </div>
       );
     };
@@ -108,7 +108,7 @@ const PokeStage = ({ pokemons }: { pokemons: PokemonsObj }) => {
           className={`${flipImg ? "-scale-x-100" : ""} m-auto my-2`}
         />
 
-        <div className="py-4 px-6 border-2 border-yellow-400 rounded-2xl bg-yellow-100">
+        <div className="py-4 px-6 border-2 border-yellow rounded-2xl bg-yellow-light">
           <div>HP: {hp}</div>
           <div>Attack: {attack}</div>
           <div>Defense: {defense}</div>
@@ -137,7 +137,7 @@ const Button = (props: ButtonProps) => {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="p-2 px-14 rounded-full ring-4 ring-blue-300 bg-blue-500 text-white hover:ring hover:ring-blue-400 hover:bg-blue-600"
+      className="p-2 px-14 rounded-full ring-4 ring-blue-light bg-blue text-white hover:ring-2"
     >
       {text}
     </button>
