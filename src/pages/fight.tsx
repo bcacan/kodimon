@@ -98,7 +98,7 @@ const PokeStage = ({ pokemons }: { pokemons: PokemonsObj }) => {
     return (
       <div className="flex flex-col justify-center gap-2">
         <HPbar />
-        <div className="text-center">{name}</div>
+        <div className="text-center font-bold">{name}</div>
         <img
           onError={({ currentTarget }) => {
             currentTarget.onerror = null; // prevents looping

@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    font-family: Bellota, cursive;
+  }
+}
+
 @layer utilities {
   .scrollbar::-webkit-scrollbar {
     top: 2px;
