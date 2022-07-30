@@ -64,6 +64,7 @@ const getTwoPokemons = async () => {
     defense: stats_1[2].base_stat,
     speed: stats_1[5].base_stat,
     img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id_1}.png`,
+    side: "left",
   };
 
   const { id: id_2, name: name_2, stats: stats_2 } = secondPokemon;
@@ -75,6 +76,7 @@ const getTwoPokemons = async () => {
     defense: stats_2[2].base_stat,
     speed: stats_2[5].base_stat,
     img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id_2}.png`,
+    side: "right",
   };
   return { first: firstPokemonStripped, second: secondPokemonStripped };
 };

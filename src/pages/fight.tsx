@@ -2,16 +2,10 @@ import type { NextPage } from "next";
 import Head from "next/head";
 import { trpc } from "../utils/trpc";
 import Link from "next/link";
-import { PokemonInfo } from "../types/pokemon";
+import { PokemonInfo, PokemonsObj } from "../types/pokemon";
 import { useEffect, useState } from "react";
 
 const FightScreen: NextPage = () => {
-  const [log, setLog] = useState("");
-  const updateState = (logMsg: string) => {
-    setLog((curr) => curr + logMsg + "\n");
-    utils.invalidateQueries(["pokeApi.getState"]);
-  };
-
   const utils = trpc.useContext();
 
   const setNewPokemons = trpc.useMutation(["pokeApi.newPokemons"]);
@@ -20,6 +14,13 @@ const FightScreen: NextPage = () => {
     //enabled: false, // disable this query from automatically running (on pageload)
   });
   const attackTest = trpc.useMutation(["pokeApi.randomAttack"]);
+
+  const [log, setLog] = useState("");
+  const updateState = (logMsg: string) => {
+    setLog((curr) => curr + logMsg + "\n");
+    utils.invalidateQueries(["pokeApi.getState"]);
+  };
+
   const initPokemons = () => {
     setLog("");
     setNewPokemons.mutate(null, {
@@ -60,12 +61,9 @@ const FightScreen: NextPage = () => {
         <button className="m-2 p-2 block bg-blue-200" onClick={buttonHandler}>
           click
         </button>
-        <main className="container mx-auto flex flex-col items-center p-4">
+        <main className="container mx-auto flex flex-col items-center p-4 gap-y-20">
           {state.data && state.data.pokemons && state.isSuccess ? (
-            <div className="flex gap-20">
-              <ShowPokemon pokeInfo={state.data.pokemons.first} />
-              <ShowPokemon pokeInfo={state.data.pokemons.second} />
-            </div>
+            <PokeStage pokemons={state.data.pokemons} />
           ) : (
             state.status
           )}
@@ -74,7 +72,7 @@ const FightScreen: NextPage = () => {
             value={log}
             disabled
             rows={10}
-            className="m-8 p-2 bg-gray-600 text-white w-full"
+            className="p-6 bg-gray-600 text-white w-10/12 rounded-xl"
           ></textarea>
         </main>
       </div>
@@ -84,17 +82,47 @@ const FightScreen: NextPage = () => {
 
 export default FightScreen;
 
-const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
-  const { name, hp, attack, defense, speed, img } = pokeInfo;
+const PokeStage = ({ pokemons }: { pokemons: PokemonsObj }) => {
+  const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
+    const { name, hp, attack, defense, speed, img, side } = pokeInfo;
+    const flipImg = side === "left";
+
+    const HPbar = () => {
+      return (
+        <div className="border-solid border-2 border-red-800 rounded-2xl">
+          <div className="h-2.5 bg-red-500  rounded-2xl"></div>
+        </div>
+      );
+    };
+
+    return (
+      <div className="flex flex-col justify-center gap-2">
+        <HPbar />
+        <div className="text-center">{name}</div>
+        <img
+          onError={({ currentTarget }) => {
+            currentTarget.onerror = null; // prevents looping
+            currentTarget.src = "/assets/Kodi-logo.svg";
+          }}
+          src={img}
+          className={`${flipImg ? "-scale-x-100" : ""} m-auto my-2`}
+        />
+
+        <div className="py-4 px-6 border-2 border-yellow-400 rounded-2xl bg-yellow-100">
+          <div>HP: {hp}</div>
+          <div>Attack: {attack}</div>
+          <div>Defense: {defense}</div>
+          <div>Speed: {speed}</div>
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div>
-      <img src={img} />
-      <div>Name: {name}</div>
-      <div>HP: {hp}</div>
-      <div>Attack: {attack}</div>
-      <div>Defense: {defense}</div>
-      <div>Speed: {speed}</div>
+    <div className="w-full flex justify-evenly">
+      <ShowPokemon pokeInfo={pokemons.first} />
+      <img src="/assets/arrow.svg" />
+      <ShowPokemon pokeInfo={pokemons.second} />
     </div>
   );
 };

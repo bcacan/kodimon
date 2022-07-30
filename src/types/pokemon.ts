@@ -6,6 +6,7 @@ export interface PokemonInfo {
   defense: number;
   speed: number;
   img: string;
+  side: "left" | "right";
 }
 
 export interface PokemonsObj {
