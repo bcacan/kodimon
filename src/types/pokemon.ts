@@ -8,6 +8,7 @@ export interface PokemonInfo {
     attack: number;
     defense: number;
     speed: number;
+    fullHp: number;
   };
 }
 
@@ -18,6 +19,7 @@ export interface PokemonsObj {
 
 export interface State {
   pokemons?: PokemonsObj;
+  turn: number;
 }
 
 export interface ButtonProps {

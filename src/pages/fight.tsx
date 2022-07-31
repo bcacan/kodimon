@@ -3,11 +3,12 @@ import Head from "next/head";
 import { trpc } from "../utils/trpc";
 import Link from "next/link";
 import { ButtonProps, PokemonInfo, PokemonsObj } from "../types/pokemon";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { atom, useAtom } from "jotai";
 
 const logs = atom("");
 const initLogs = atom("");
+const turn = atom(0);
 
 const FightScreen: NextPage = () => {
   const utils = trpc.useContext();
@@ -20,6 +21,7 @@ const FightScreen: NextPage = () => {
         onSuccess: (data) => {
           appendLogs(data.logMsg + "\n");
           utils.invalidateQueries(["pokeApi.getState"]);
+          utils.invalidateQueries(["pokeApi.arrowDirection"]);
         },
       });
       //console.log("set new pokes");
@@ -71,7 +73,8 @@ const PokeStage = () => {
       <div className="w-full flex justify-evenly">
         <ShowPokemon pokeInfo={state.data?.pokemons.first} />
         <div className="flex flex-col justify-center gap-8">
-          <img src="/assets/arrow.svg" className="mx-auto" />
+          <Arrow />
+
           <AttackButton />
         </div>
         <ShowPokemon pokeInfo={state.data?.pokemons.second} />
@@ -87,7 +90,7 @@ const Button = (props: ButtonProps) => {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="p-2 px-14 rounded-full ring-4 ring-blue-light bg-blue text-white hover:ring-2"
+      className="p-2 px-14 rounded-full ring-4 ring-blue-light bg-blue text-white enabled:hover:ring-2 disabled:opacity-30"
     >
       {text}
     </button>
@@ -143,23 +146,59 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
   );
 };
 
+const Arrow = () => {
+  const { data: yourTurn, isLoading } = trpc.useQuery(["pokeApi.arrowDirection"], {
+    refetchOnWindowFocus: false,
+  });
+  return (
+    <>
+      {!isLoading ? (
+        <img
+          src="/assets/arrow.svg"
+          className={`${yourTurn ? "-scale-x-100" : ""} mx-auto`}
+        />
+      ) : null}
+    </>
+  );
+};
+
 const AttackButton = () => {
   const utils = trpc.useContext();
-  const attackTest = trpc.useMutation(["pokeApi.randomAttack"]);
+  const attack = trpc.useMutation(["pokeApi.attack"]);
   const [, appendLogs] = useAtom(logs);
 
+  const { data: yourTurn, isLoading } = trpc.useQuery(["pokeApi.arrowDirection"], {
+    refetchOnWindowFocus: false,
+  });
+
+  const doAttack = () => {
+    attack.mutate(null, {
+      onSuccess: (data?) => {
+        appendLogs((curr) => `${curr} # ${data?.newTurn! - 1} ${data?.logMsg} \n`);
+
+        utils.invalidateQueries(["pokeApi.getStats"]);
+        utils.invalidateQueries(["pokeApi.arrowDirection"]);
+      },
+    });
+  };
+
+  useEffect(() => {
+    if (yourTurn) return;
+    const timer = setTimeout(() => {
+      console.log("autoattack");
+      doAttack();
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [yourTurn]);
+
   return (
-    <Button
-      text="Attack!"
-      onClick={() =>
-        attackTest.mutate(/*{ num }*/ null, {
-          onSuccess: (data) => {
-            appendLogs((curr) => curr + data.logMsg + "\n");
-            utils.invalidateQueries(["pokeApi.getStats"]);
-          },
-        })
-      }
-    />
+    <>
+      {!isLoading ? (
+        <Button text="Attack!" onClick={() => doAttack()} disabled={!yourTurn} />
+      ) : (
+        "loading"
+      )}
+    </>
   );
 };
 
