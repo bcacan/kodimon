@@ -19,6 +19,11 @@ export const pokeApiRouter = createRouter()
       return state;
     },
   })
+  .query("getStats", {
+    resolve() {
+      return { first: state.pokemons?.first.stats, second: state.pokemons?.second.stats };
+    },
+  })
   .mutation("randomAttack", {
     // input: z.object({
     //   num: z.string(),
@@ -33,10 +38,10 @@ export const pokeApiRouter = createRouter()
       if (roll2) return { logMsg: msg + ", but misses!" };
 
       const effectiveAttack =
-        (activePokemon.attack / 2) * (1 - inactivePokemon.defense / 100);
+        (activePokemon.stats.attack / 2) * (1 - inactivePokemon.stats.defense / 100);
       const effectiveAttackRounded = Math.round(effectiveAttack * 100) / 100;
 
-      inactivePokemon.hp -= effectiveAttackRounded;
+      inactivePokemon.stats.hp -= effectiveAttackRounded;
       return {
         logMsg: msg + ` for ${effectiveAttackRounded} damage`,
       };
@@ -59,10 +64,12 @@ const getTwoPokemons = async () => {
   const firstPokemonStripped: PokemonInfo = {
     id: id_1,
     name: name_1[0].toUpperCase() + name_1.substring(1),
-    hp: stats_1[0].base_stat,
-    attack: stats_1[1].base_stat,
-    defense: stats_1[2].base_stat,
-    speed: stats_1[5].base_stat,
+    stats: {
+      hp: stats_1[0].base_stat,
+      attack: stats_1[1].base_stat,
+      defense: stats_1[2].base_stat,
+      speed: stats_1[5].base_stat,
+    },
     img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id_1}.png`,
     side: "left",
   };
@@ -71,10 +78,12 @@ const getTwoPokemons = async () => {
   const secondPokemonStripped: PokemonInfo = {
     id: id_2,
     name: name_2[0].toUpperCase() + name_2.substring(1),
-    hp: stats_2[0].base_stat,
-    attack: stats_2[1].base_stat,
-    defense: stats_2[2].base_stat,
-    speed: stats_2[5].base_stat,
+    stats: {
+      hp: stats_2[0].base_stat,
+      attack: stats_2[1].base_stat,
+      defense: stats_2[2].base_stat,
+      speed: stats_2[5].base_stat,
+    },
     img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id_2}.png`,
     side: "right",
   };
