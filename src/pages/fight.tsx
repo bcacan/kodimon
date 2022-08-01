@@ -3,17 +3,18 @@ import Head from "next/head";
 import { trpc } from "../utils/trpc";
 import Link from "next/link";
 import { ButtonProps, PokemonInfo, PokemonsObj } from "../types/pokemon";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { atom, useAtom } from "jotai";
+import { DEV_GET_MOUNTED } from "jotai/core/store";
 
 const logs = atom("");
 const initLogs = atom("");
-const turn = atom(0);
 
 const FightScreen: NextPage = () => {
   const utils = trpc.useContext();
   const setNewPokemons = trpc.useMutation(["pokeApi.newPokemons"]);
   const [, appendLogs] = useAtom(initLogs);
+
   useEffect(() => {
     const initPokemons = () => {
       //setLog("");
@@ -66,7 +67,6 @@ const PokeStage = () => {
     refetchOnWindowFocus: false,
     //enabled: false, // disable this query from automatically running (on pageload)
   });
-
   if (state.isLoading || !state.data?.pokemons) return <>loading</>;
   return (
     <>
@@ -98,14 +98,42 @@ const Button = (props: ButtonProps) => {
 };
 
 const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
-  const { name, img, side, stats } = pokeInfo;
+  const { name, img, side /*, stats*/ } = pokeInfo;
 
   const flipImg = side === "left";
 
-  const HPbar = () => {
+  const HPbar = ({ side }: { side: string }) => {
+    const stats = trpc.useQuery(["pokeApi.getStats"], {
+      refetchOnWindowFocus: false,
+      //enabled: false, // disable this query from automatically running (on pageload)
+    });
+    if (stats.isLoading || !stats.data?.first || !stats.data?.second) return <></>;
+
+    const statsSide = side === "left" ? stats.data.first : stats.data.second;
+    const { hp, fullHp } = statsSide;
+
+    let hpPercentage = Math.round((hp / fullHp) * 100);
+
+    // Set color of HP bar
+    let barBgColor,
+      barBorderColor = "";
+    if (hpPercentage > 50) {
+      barBgColor = "bg-green-light";
+      barBorderColor = "border-green";
+    } else if (hpPercentage > 30) {
+      barBgColor = "bg-orange-light";
+      barBorderColor = "border-orange";
+    } else {
+      barBgColor = "bg-red-light";
+      barBorderColor = "border-red";
+    }
+
     return (
-      <div className="border-solid border-2 border-red rounded-2xl">
-        <div className="h-2.5 bg-red-light rounded-2xl"></div>
+      <div>
+        <div className="text-center">{hpPercentage}%</div>
+        <div className={`border-solid border-2 rounded-2xl ${barBorderColor}`}>
+          <div className={`h-2.5 rounded-2xl ${barBgColor}`}></div>
+        </div>
       </div>
     );
   };
@@ -128,19 +156,21 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
       </div>
     );
   };
+
   return (
     <div className="flex flex-col justify-center gap-2">
-      <HPbar />
-      <div className="text-center font-bold">{name}</div>
-      <img
-        onError={({ currentTarget }) => {
-          currentTarget.onerror = null; // prevents looping
-          currentTarget.src = "/assets/Kodi-logo.svg";
-        }}
-        src={img}
-        className={`${flipImg ? "-scale-x-100" : ""} m-auto my-2`}
-      />
-
+      <HPbar side={side} />
+      <div className="my-6">
+        <div className="text-center font-bold">{name}</div>
+        <img
+          onError={({ currentTarget }) => {
+            currentTarget.onerror = null; // prevents looping
+            currentTarget.src = "/assets/Kodi-logo.svg";
+          }}
+          src={img}
+          className={`${flipImg ? "-scale-x-100" : ""} m-auto`}
+        />
+      </div>
       <Stats side={side} />
     </div>
   );
@@ -170,26 +200,30 @@ const AttackButton = () => {
   const { data: yourTurn, isLoading } = trpc.useQuery(["pokeApi.arrowDirection"], {
     refetchOnWindowFocus: false,
   });
+  const [endGame, setEndGame] = useState(false);
 
   const doAttack = () => {
     attack.mutate(null, {
       onSuccess: (data?) => {
-        appendLogs((curr) => `${curr} # ${data?.newTurn! - 1} ${data?.logMsg} \n`);
-
+        appendLogs((curr) => `${curr} #${data?.newTurn! - 1}   ${data?.logMsg} \n`);
         utils.invalidateQueries(["pokeApi.getStats"]);
         utils.invalidateQueries(["pokeApi.arrowDirection"]);
+        //utils.invalidateQueries(["pokeApi.endGame"]);
+        if (data?.endGame === 1) setEndGame(true);
       },
     });
   };
 
   useEffect(() => {
-    if (yourTurn) return;
+    if (yourTurn || endGame) return;
     const timer = setTimeout(() => {
       console.log("autoattack");
       doAttack();
-    }, 3000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [yourTurn]);
+
+  if (endGame) return <div> end game</div>;
 
   return (
     <>

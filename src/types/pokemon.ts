@@ -20,6 +20,7 @@ export interface PokemonsObj {
 export interface State {
   pokemons?: PokemonsObj;
   turn: number;
+  end: number;
 }
 
 export interface ButtonProps {

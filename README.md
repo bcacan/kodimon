@@ -2,8 +2,8 @@
 
 - [ ] Is stats array from API always in same order.
 - [ ] Find HD images but pokemons must look in same direction
-- [ ] Add replacement if poke image is missing
-- [ ] Defense >=100 problem
+- [x] Add replacement if poke image is missing
+- [x] Defense >=100 problem
 
 #
 

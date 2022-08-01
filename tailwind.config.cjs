@@ -16,6 +16,8 @@ module.exports = {
       "red-light": "#FF7575",
       green: "#079325",
       "green-light": "#62FF84",
+      orange: "#fb923c",
+      "orange-light": "#fdba74",
     },
     extend: {
       fontFamily: {

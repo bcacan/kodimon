@@ -5,7 +5,7 @@ import { PokemonInfo, PokemonsObj, State } from "../../types/pokemon";
 import { SocketAddress } from "net";
 import { randomID, round2Decimals } from "../../utils/math";
 
-let state: State = { turn: 0 };
+let state: State = { turn: 0, end: 0 };
 
 const MISS_CHANCE = 0.2;
 
@@ -39,32 +39,47 @@ export const pokeApiRouter = createRouter()
 
       state.turn++;
 
-      const { effectiveDeffense, missMultiplier } = (() => {
+      // Calc effective defense
+      const { effectiveDefense, missMultiplier } = (() => {
         let i = 1;
-        let effectiveDeffense = inactivePokemon.stats.defense;
-        while (effectiveDeffense >= 100) {
-          effectiveDeffense = effectiveDeffense / 2;
+        let effectiveDef = inactivePokemon.stats.defense;
+        while (effectiveDef >= 100) {
+          effectiveDef = effectiveDef / 2;
           i++;
         }
-        return { effectiveDeffense: effectiveDeffense, missMultiplier: i };
+        return { effectiveDefense: effectiveDef, missMultiplier: i };
       })();
 
+      // Check miss chance
       if (Math.random() < MISS_CHANCE * missMultiplier)
         return {
+          endGame: state.end,
           newTurn: state.turn,
           logMsg: `${activePokemon.name} missed ${inactivePokemon.name}`,
         };
 
+      // Calc effective attack
       const effectiveAttack = round2Decimals(
-        (activePokemon.stats.attack / 2) * (1 - effectiveDeffense / 100),
+        (activePokemon.stats.attack / 2) * (1 - effectiveDefense / 100),
       );
+
+      // Calc reduced HP
       inactivePokemon.stats.hp = round2Decimals(
         inactivePokemon.stats.hp - effectiveAttack,
       );
 
+      // Death check
+      let deadMsg = "";
+      if (inactivePokemon.stats.hp < 0) {
+        inactivePokemon.stats.hp = 0;
+        deadMsg = `\n ${inactivePokemon.name} died`;
+        state.end = 1;
+      }
+
       return {
+        endGame: state.end,
         newTurn: state.turn,
-        logMsg: `${activePokemon.name} attacked ${inactivePokemon.name} for ${effectiveAttack} dmg`,
+        logMsg: `${activePokemon.name} attacked ${inactivePokemon.name} for ${effectiveAttack} dmg${deadMsg}`,
       };
     },
   })
@@ -72,6 +87,11 @@ export const pokeApiRouter = createRouter()
     resolve() {
       if (whoIsOnTurn()!.activePokemon == state.pokemons!.first) return true;
       return false;
+    },
+  })
+  .query("endGame", {
+    resolve() {
+      return state.end;
     },
   });
 
@@ -103,7 +123,7 @@ const getTwoPokemons = async () => {
     name: name_2[0].toUpperCase() + name_2.substring(1),
     stats: {
       hp: stats_2[0].base_stat,
-      fullHp: stats_1[0].base_stat,
+      fullHp: stats_2[0].base_stat,
       attack: stats_2[1].base_stat,
       defense: stats_2[2].base_stat,
       speed: stats_2[5].base_stat,
