@@ -18,9 +18,12 @@ export interface PokemonsObj {
 }
 
 export interface State {
-  pokemons?: PokemonsObj;
+  pokemons: PokemonsObj;
   turn: number;
-  end: number;
+  endGame: {
+    end: boolean;
+    won: { name: string; player: boolean };
+  };
 }
 
 export interface ButtonProps {

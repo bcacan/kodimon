@@ -5,15 +5,19 @@ import { PokemonInfo, PokemonsObj, State } from "../../types/pokemon";
 import { SocketAddress } from "net";
 import { randomID, round2Decimals } from "../../utils/math";
 
-let state: State = { turn: 0, end: 0 };
+let state: State;
 
 const MISS_CHANCE = 0.2;
 
 export const pokeApiRouter = createRouter()
   .mutation("newPokemons", {
     async resolve() {
-      state.pokemons = await getTwoPokemons();
-      state.turn = 1;
+      state = {
+        pokemons: await getTwoPokemons(),
+        turn: 1,
+        endGame: { end: false, won: { name: "", player: false } },
+      };
+
       const msg = `${state.pokemons.first.name} and ${state.pokemons.second.name} appeared`;
       return { logMsg: msg };
     },
@@ -53,7 +57,7 @@ export const pokeApiRouter = createRouter()
       // Check miss chance
       if (Math.random() < MISS_CHANCE * missMultiplier)
         return {
-          endGame: state.end,
+          endGame: state.endGame,
           newTurn: state.turn,
           logMsg: `${activePokemon.name} missed ${inactivePokemon.name}`,
         };
@@ -73,11 +77,13 @@ export const pokeApiRouter = createRouter()
       if (inactivePokemon.stats.hp < 0) {
         inactivePokemon.stats.hp = 0;
         deadMsg = `\n ${inactivePokemon.name} died`;
-        state.end = 1;
+        state.endGame.end = true;
+        state.endGame.won.name = activePokemon.name;
+        if (activePokemon == state.pokemons.first) state.endGame.won.player = true;
       }
 
       return {
-        endGame: state.end,
+        endGame: state.endGame,
         newTurn: state.turn,
         logMsg: `${activePokemon.name} attacked ${inactivePokemon.name} for ${effectiveAttack} dmg${deadMsg}`,
       };
@@ -91,7 +97,7 @@ export const pokeApiRouter = createRouter()
   })
   .query("endGame", {
     resolve() {
-      return state.end;
+      return state.endGame;
     },
   });
 
