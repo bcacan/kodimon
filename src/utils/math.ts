@@ -11,3 +11,7 @@ export const constrain = (num: number, min: number, max: number) => {
 export const round2Decimals = (num: number) => {
   return parseFloat(num.toFixed(2));
 };
+
+export const randomUserID = () => {
+  return Date.now();
+};

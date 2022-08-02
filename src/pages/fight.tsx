@@ -1,7 +1,7 @@
+import dynamic from "next/dynamic";
 import type { NextPage } from "next";
 import Head from "next/head";
 import { trpc } from "../utils/trpc";
-import Link from "next/link";
 import { ButtonProps, PokemonInfo, PokemonsObj } from "../types/pokemon";
 import { useEffect, useState } from "react";
 import { atom, useAtom } from "jotai";
@@ -9,9 +9,12 @@ import Modal from "react-modal";
 import { Button } from "../components/Button";
 import router from "next/router";
 import { Menu } from "../components/Menu";
+import { randomUserID } from "../utils/math";
 
 const logs = atom("");
 const initLogs = atom("");
+const uidState = atom(randomUserID());
+
 export const modal = atom({ open: false, wonName: "", wonPlayer: false });
 
 const FightScreen: NextPage = () => {
@@ -19,19 +22,23 @@ const FightScreen: NextPage = () => {
   const setNewPokemons = trpc.useMutation(["pokeApi.newPokemons"]);
   const [, setInitLogs] = useAtom(initLogs);
   const [modalOpen, setModalOpen] = useAtom(modal);
+  const [uid, setUid] = useAtom(uidState);
 
   useEffect(() => {
     setModalOpen({ open: false, wonName: "", wonPlayer: false });
-
+    console.log(uid);
     // Initialize new state for a game
     const initPokemons = () => {
-      setNewPokemons.mutate(null, {
-        onSuccess: (data) => {
-          setInitLogs(`${data.logMsg} \n`);
-          utils.invalidateQueries(["pokeApi.getState"]);
-          utils.invalidateQueries(["pokeApi.arrowDirection"]);
+      setNewPokemons.mutate(
+        { userID: uid },
+        {
+          onSuccess: (data) => {
+            setInitLogs(`${data.logMsg} \n`);
+            utils.invalidateQueries(["pokeApi.getState"]);
+            utils.invalidateQueries(["pokeApi.arrowDirection"]);
+          },
         },
-      });
+      );
     };
     initPokemons();
   }, []);
@@ -52,7 +59,7 @@ const FightScreen: NextPage = () => {
             state.status
           )} */}
           <PokeStage />
-          <div className="w-10/12 flex flex-row  items-start">
+          <div className="w-10/12 flex flex-row items-start gap-4">
             <Menu />
             <LogBox />
           </div>
@@ -88,10 +95,15 @@ const FightScreen: NextPage = () => {
   );
 };
 
-export default FightScreen;
+const LazyFightScreen = dynamic(() => Promise.resolve(FightScreen), {
+  ssr: false,
+});
+export default LazyFightScreen;
 
 const PokeStage = () => {
-  const state = trpc.useQuery(["pokeApi.getState"], {
+  const [uid] = useAtom(uidState);
+
+  const state = trpc.useQuery(["pokeApi.getState", { userID: uid }], {
     refetchOnWindowFocus: false,
     //enabled: false, // disable this query from automatically running (on pageload)
   });
@@ -117,7 +129,9 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
   const flipImg = side === "left";
 
   const HPbar = ({ side }: { side: string }) => {
-    const stats = trpc.useQuery(["pokeApi.getStats"], {
+    const [uid] = useAtom(uidState);
+
+    const stats = trpc.useQuery(["pokeApi.getStats", { userID: uid }], {
       refetchOnWindowFocus: false,
       //enabled: false, // disable this query from automatically running (on pageload)
     });
@@ -153,7 +167,9 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
   };
 
   const Stats = ({ side }: { side: string }) => {
-    const stats = trpc.useQuery(["pokeApi.getStats"], {
+    const [uid] = useAtom(uidState);
+
+    const stats = trpc.useQuery(["pokeApi.getStats", { userID: uid }], {
       refetchOnWindowFocus: false,
       //enabled: false, // disable this query from automatically running (on pageload)
     });
@@ -192,9 +208,14 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
 };
 
 const Arrow = () => {
-  const { data: yourTurn, isLoading } = trpc.useQuery(["pokeApi.arrowDirection"], {
-    refetchOnWindowFocus: false,
-  });
+  const [uid] = useAtom(uidState);
+
+  const { data: yourTurn, isLoading } = trpc.useQuery(
+    ["pokeApi.arrowDirection", { userID: uid }],
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
   return (
     <>
       {!isLoading ? (
@@ -211,28 +232,35 @@ const AttackButton = () => {
   const utils = trpc.useContext();
   const attack = trpc.useMutation(["pokeApi.attack"]);
   const [, setLogs] = useAtom(logs);
+  const [uid] = useAtom(uidState);
 
-  const { data: yourTurn, isLoading } = trpc.useQuery(["pokeApi.arrowDirection"], {
-    refetchOnWindowFocus: false,
-  });
+  const { data: yourTurn, isLoading } = trpc.useQuery(
+    ["pokeApi.arrowDirection", { userID: uid }],
+    {
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const [modalOpen, setModalOpen] = useAtom(modal); // modalOpen = endgame
 
   const doAttack = () => {
-    attack.mutate(null, {
-      onSuccess: (data?) => {
-        setLogs((curr) => `${curr} #${data?.newTurn! - 1}   ${data?.logMsg} \n`);
-        utils.invalidateQueries(["pokeApi.getStats"]);
-        utils.invalidateQueries(["pokeApi.arrowDirection"]);
-        //utils.invalidateQueries(["pokeApi.endGame"]);
-        if (data?.endGame.end)
-          setModalOpen({
-            open: true,
-            wonName: data.endGame.won.name,
-            wonPlayer: data.endGame.won.player,
-          });
+    attack.mutate(
+      { userID: uid },
+      {
+        onSuccess: (data?) => {
+          setLogs((curr) => `${curr} #${data?.newTurn! - 1}   ${data?.logMsg} \n`);
+          utils.invalidateQueries(["pokeApi.getStats"]);
+          utils.invalidateQueries(["pokeApi.arrowDirection"]);
+          //utils.invalidateQueries(["pokeApi.endGame"]);
+          if (data?.endGame.end)
+            setModalOpen({
+              open: true,
+              wonName: data.endGame.won.name,
+              wonPlayer: data.endGame.won.player,
+            });
+        },
       },
-    });
+    );
   };
 
   useEffect(() => {

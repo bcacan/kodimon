@@ -1,47 +1,64 @@
 import { createRouter } from "./context";
-import { z } from "zod";
+import { number, z } from "zod";
 import axios from "axios";
-import { PokemonInfo, PokemonsObj, State } from "../../types/pokemon";
-import { SocketAddress } from "net";
+import { PokemonInfo, PokemonsObj, IState } from "../../types/pokemon";
 import { randomID, round2Decimals } from "../../utils/math";
 
-let state: State;
+const State = new Map<number, IState>();
 
 const MISS_CHANCE = 0.2;
 
 export const pokeApiRouter = createRouter()
   .mutation("newPokemons", {
-    async resolve() {
-      state = {
+    input: z.object({
+      userID: z.number(),
+    }),
+    async resolve({ input }) {
+      State.set(input.userID, {
         pokemons: await getTwoPokemons(),
         turn: 1,
         endGame: { end: false, won: { name: "", player: false } },
-      };
+      });
 
-      const msg = `${state.pokemons.first.name} and ${state.pokemons.second.name} appeared`;
+      const userState = State.get(input.userID)!;
+      const msg = `${userState.pokemons.first.name} and ${userState.pokemons.second.name} appeared`;
+
+      console.log("state:", State);
       return { logMsg: msg };
     },
   })
   .query("getState", {
-    resolve() {
-      return state;
+    input: z.object({
+      userID: z.number(),
+    }),
+    resolve({ input }) {
+      const userState = State.get(input.userID);
+      return userState;
     },
   })
   .query("getStats", {
-    resolve() {
-      return { first: state.pokemons?.first.stats, second: state.pokemons?.second.stats };
+    input: z.object({
+      userID: z.number(),
+    }),
+    resolve({ input }) {
+      const userState = State.get(input.userID)!;
+      return {
+        first: userState.pokemons.first.stats,
+        second: userState.pokemons.second.stats,
+      };
     },
   })
   .mutation("attack", {
-    // input: z.object({
-    //   num: z.string(),
-    // }),
-    resolve(/*{ input }*/) {
-      if (!state.pokemons || !state.turn) return null;
+    input: z.object({
+      userID: z.number(),
+    }),
+    resolve({ input }) {
+      const userState = State.get(input.userID)!;
+      if (!userState.pokemons || !userState.turn) return null;
 
-      const { activePokemon, inactivePokemon } = whoIsOnTurn()!;
+      const { activePokemon, inactivePokemon } = whoIsOnTurn(userState)!;
 
-      state.turn++;
+      userState.turn++;
 
       // Calc effective defense
       const { effectiveDefense, missMultiplier } = (() => {
@@ -57,8 +74,8 @@ export const pokeApiRouter = createRouter()
       // Check miss chance
       if (Math.random() < MISS_CHANCE * missMultiplier)
         return {
-          endGame: state.endGame,
-          newTurn: state.turn,
+          endGame: userState.endGame,
+          newTurn: userState.turn,
           logMsg: `${activePokemon.name} missed ${inactivePokemon.name}`,
         };
 
@@ -77,27 +94,38 @@ export const pokeApiRouter = createRouter()
       if (inactivePokemon.stats.hp < 0) {
         inactivePokemon.stats.hp = 0;
         deadMsg = `\n ${inactivePokemon.name} died`;
-        state.endGame.end = true;
-        state.endGame.won.name = activePokemon.name;
-        if (activePokemon == state.pokemons.first) state.endGame.won.player = true;
+        userState.endGame.end = true;
+        userState.endGame.won.name = activePokemon.name;
+        if (activePokemon == userState.pokemons.first)
+          userState.endGame.won.player = true;
       }
 
       return {
-        endGame: state.endGame,
-        newTurn: state.turn,
+        endGame: userState.endGame,
+        newTurn: userState.turn,
         logMsg: `${activePokemon.name} attacked ${inactivePokemon.name} for ${effectiveAttack} dmg${deadMsg}`,
       };
     },
   })
   .query("arrowDirection", {
-    resolve() {
-      if (whoIsOnTurn()!.activePokemon == state.pokemons!.first) return true;
+    input: z.object({
+      userID: z.number(),
+    }),
+    resolve({ input }) {
+      const userState = State.get(input.userID)!;
+
+      if (whoIsOnTurn(userState)!.activePokemon == userState?.pokemons.first) return true;
       return false;
     },
   })
   .query("endGame", {
-    resolve() {
-      return state.endGame;
+    input: z.object({
+      userID: z.number(),
+    }),
+    resolve({ input }) {
+      const userState = State.get(input.userID)!;
+
+      return userState.endGame;
     },
   });
 
@@ -153,17 +181,21 @@ const fetchPokemon = async (takenID?: number) => {
   }
 };
 
-const whoIsOnTurn = () => {
-  if (!state.pokemons) return null;
+const whoIsOnTurn = (userState: IState) => {
+  if (!userState.pokemons) return null;
 
   // If first Poke is faster, it attacks first - else second Poke attacks first
   const firstIsFaster =
-    state.pokemons.first.stats.speed > state.pokemons.second.stats.speed;
-  const firstToAttack = firstIsFaster ? state.pokemons.first : state.pokemons.second;
-  const secondToAttack = firstIsFaster ? state.pokemons.second : state.pokemons.first;
+    userState.pokemons.first.stats.speed > userState.pokemons.second.stats.speed;
+  const firstToAttack = firstIsFaster
+    ? userState.pokemons.first
+    : userState.pokemons.second;
+  const secondToAttack = firstIsFaster
+    ? userState.pokemons.second
+    : userState.pokemons.first;
 
   // If turn is odd, left Poke attacks - else right Poke attacks
-  const oddTurn = state.turn % 2 === 1;
+  const oddTurn = userState.turn % 2 === 1;
   const activePokemon = oddTurn ? firstToAttack : secondToAttack;
   const inactivePokemon = oddTurn ? secondToAttack : firstToAttack;
 

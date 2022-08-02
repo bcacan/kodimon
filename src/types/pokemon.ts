@@ -17,7 +17,7 @@ export interface PokemonsObj {
   second: PokemonInfo;
 }
 
-export interface State {
+export interface IState {
   pokemons: PokemonsObj;
   turn: number;
   endGame: {
