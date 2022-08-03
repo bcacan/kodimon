@@ -211,16 +211,21 @@ const ShowPokemon = (
   const HPbar = ({ side }: { side: string }) => {
     const [uid] = useAtom(uidState);
 
+    const [stylesHPbar, animateHPbar] = useSpring({}, []);
+
     const stats = trpc.useQuery(["pokeApi.getStats", { userID: uid }], {
       refetchOnWindowFocus: false,
-      //enabled: false, // disable this query from automatically running (on pageload)
     });
-    if (stats.isLoading || !stats.data?.first || !stats.data?.second) return <></>;
 
+    if (stats.isLoading || !stats.data) return <></>;
     const statsSide = side === "left" ? stats.data.first : stats.data.second;
     const { hp, fullHp } = statsSide;
-
     let hpPercentage = Math.round((hp / fullHp) * 100);
+
+    animateHPbar.start({
+      to: { width: `${hpPercentage}%` },
+      delay: 300,
+    });
 
     // Set color of HP bar
     let barBgColor,
@@ -240,7 +245,10 @@ const ShowPokemon = (
       <div>
         <div className="text-center">{hpPercentage}%</div>
         <div className={`border-solid border-2 rounded-2xl ${barBorderColor}`}>
-          <div className={`h-2.5 rounded-2xl ${barBgColor}`}></div>
+          <animated.div
+            style={stylesHPbar}
+            className={`h-2.5 rounded-2xl ${barBgColor}`}
+          ></animated.div>
         </div>
       </div>
     );

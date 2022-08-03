@@ -3,13 +3,15 @@ export interface PokemonInfo {
   name: string;
   img: string;
   side: "left" | "right";
-  stats: {
-    hp: number;
-    attack: number;
-    defense: number;
-    speed: number;
-    fullHp: number;
-  };
+  stats: PokemonStats;
+}
+
+export interface PokemonStats {
+  hp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  fullHp: number;
 }
 
 export interface PokemonsObj {
