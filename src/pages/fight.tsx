@@ -304,13 +304,12 @@ const Arrow = () => {
       refetchOnWindowFocus: false,
     },
   );
+  const [stylesArrow, animateArrow] = useSpring({}, []);
+  animateArrow.start({ rotate: yourTurn ? 180 : 0 });
   return (
     <>
       {!isLoading ? (
-        <img
-          src="/assets/arrow.svg"
-          className={`${yourTurn ? "-scale-x-100" : ""} mx-auto`}
-        />
+        <animated.img src="/assets/arrow.svg" style={stylesArrow} className={"mx-auto"} />
       ) : null}
     </>
   );
