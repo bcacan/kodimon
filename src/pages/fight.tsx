@@ -2,14 +2,14 @@ import dynamic from "next/dynamic";
 import type { NextPage } from "next";
 import Head from "next/head";
 import { trpc } from "../utils/trpc";
-import { ButtonProps, PokemonInfo, PokemonsObj } from "../types/pokemon";
-import { useEffect, useState } from "react";
+import { IanimatePoke, IanimatePokeFun } from "../types/pokemon";
+import { useEffect, useRef, useState } from "react";
 import { atom, useAtom } from "jotai";
 import Modal from "react-modal";
 import { Button } from "../components/Button";
-import router from "next/router";
 import { Menu } from "../components/Menu";
-import { randomUserID } from "../utils/math";
+import { randomUserID, getRandomNum } from "../utils/math";
+import { animated, useSpring, useSpringRef, useTransition } from "@react-spring/web";
 
 const logs = atom("");
 const initLogs = atom("");
@@ -22,11 +22,10 @@ const FightScreen: NextPage = () => {
   const setNewPokemons = trpc.useMutation(["pokeApi.newPokemons"]);
   const [, setInitLogs] = useAtom(initLogs);
   const [modalOpen, setModalOpen] = useAtom(modal);
-  const [uid, setUid] = useAtom(uidState);
+  const [uid] = useAtom(uidState);
 
   useEffect(() => {
     setModalOpen({ open: false, wonName: "", wonPlayer: false });
-    console.log(uid);
     // Initialize new state for a game
     const initPokemons = () => {
       setNewPokemons.mutate(
@@ -107,25 +106,106 @@ const PokeStage = () => {
     refetchOnWindowFocus: false,
     //enabled: false, // disable this query from automatically running (on pageload)
   });
+
+  // Pokemons (title & image) div ref
+  const firstPokeRef = useRef<HTMLDivElement>(null);
+  const secondPokeRef = useRef<HTMLDivElement>(null);
+  // Pokemons div animation
+  const [stylesFirstPoke, animateFirstPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
+  const [stylesSecondPoke, animateSecondPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
+
+  // Damage message state and ref
+  const damageMsg = useRef({ text: "", position: [0, 0] });
+  const [showDamage, setDamage] = useState(false);
+  // Damage message transition
+  const transitions = useTransition(showDamage, {
+    from: {
+      opacity: 0,
+      x: damageMsg.current.position[0],
+      y: damageMsg.current.position[1],
+    },
+    enter: { opacity: 1 },
+    leave: { opacity: 0 },
+    //reverse: showDamage,
+    delay: 450,
+    //config: config.molasses,
+    onRest: () => setDamage(false),
+  });
+
+  // Fun that animates: "active pokemon attacks another one" and display applied damage message
+  const animateAttack = async (animatePoke: IanimatePoke) => {
+    const { side, miss, damage } = animatePoke;
+
+    const checkSide = side === "first";
+    const animatedP = checkSide ? firstPokeRef : secondPokeRef;
+    const passiveP = checkSide ? secondPokeRef : firstPokeRef;
+    const animateAPI = checkSide ? animateFirstPoke : animateSecondPoke;
+    const directionOffest = checkSide ? -0.8 : 0.8;
+
+    const animP = animatedP.current!.getBoundingClientRect();
+    const passP = passiveP.current!.getBoundingClientRect();
+    const goToX =
+      passP.x + passP.width / 2 - animP.x - animP.width / (2 + directionOffest);
+    const goToY = -passP.y * 0.5;
+
+    await animateAPI.start({
+      to: [
+        {
+          x: goToX / 3,
+          y: goToY,
+          onRest: () => {
+            damageMsg.current.text = miss ? "Miss!" : `${damage}dmg!`;
+            damageMsg.current.position = [goToX / 3.5, goToY / -1.5];
+            console.log(goToX, goToY);
+            setDamage(true);
+          },
+        },
+        { x: goToX, y: miss ? getRandomNum(40, 100) : -passP.y / 10 },
+        { x: goToX / 3, y: goToY },
+        { x: 0, y: 0 },
+      ],
+    })[0];
+  };
+
   if (state.isLoading || !state.data?.pokemons) return <>loading</>;
   return (
     <>
       <div className="w-full flex justify-evenly">
-        <ShowPokemon pokeInfo={state.data?.pokemons.first} />
+        <ShowPokemon
+          forwardedRef={firstPokeRef}
+          stylesPoke={stylesFirstPoke}
+          pokeInfo={state.data?.pokemons.first}
+        />
         <div className="flex flex-col justify-center gap-8">
           <Arrow />
 
-          <AttackButton />
+          <AttackButton animateFun={animateAttack} />
         </div>
-        <ShowPokemon pokeInfo={state.data?.pokemons.second} />
+        <ShowPokemon
+          forwardedRef={secondPokeRef}
+          stylesPoke={stylesSecondPoke}
+          pokeInfo={state.data?.pokemons.second}
+        />
+        {transitions(
+          (styles, item) =>
+            item && (
+              <animated.span style={styles} className="absolute text-red font-bold">
+                {damageMsg.current.text}
+              </animated.span>
+            ),
+        )}
       </div>
     </>
   );
 };
 
-const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
+const ShowPokemon = (
+  { pokeInfo, forwardedRef, stylesPoke }: any /*{
+  pokeInfo: PokemonInfo;
+  forwardedRef: RefObject;
+}*/,
+) => {
   const { name, img, side /*, stats*/ } = pokeInfo;
-
   const flipImg = side === "left";
 
   const HPbar = ({ side }: { side: string }) => {
@@ -190,7 +270,7 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
   return (
     <div className="flex flex-col justify-center gap-2">
       <HPbar side={side} />
-      <div className="my-6">
+      <animated.div ref={forwardedRef} style={stylesPoke} className="my-6">
         <div className="text-center font-bold">{name}</div>
         <img
           onError={({ currentTarget }) => {
@@ -201,7 +281,7 @@ const ShowPokemon = ({ pokeInfo }: { pokeInfo: PokemonInfo }) => {
           src={img}
           className={`${flipImg ? "-scale-x-100" : ""} m-auto`}
         />
-      </div>
+      </animated.div>
       <Stats side={side} />
     </div>
   );
@@ -228,7 +308,7 @@ const Arrow = () => {
   );
 };
 
-const AttackButton = () => {
+const AttackButton = ({ animateFun }: { animateFun: IanimatePokeFun }) => {
   const utils = trpc.useContext();
   const attack = trpc.useMutation(["pokeApi.attack"]);
   const [, setLogs] = useAtom(logs);
@@ -247,7 +327,8 @@ const AttackButton = () => {
     attack.mutate(
       { userID: uid },
       {
-        onSuccess: (data?) => {
+        onSuccess: async (data?) => {
+          await animateFun(data?.animatePoke!);
           setLogs((curr) => `${curr} #${data?.newTurn! - 1}   ${data?.logMsg} \n`);
           utils.invalidateQueries(["pokeApi.getStats"]);
           utils.invalidateQueries(["pokeApi.arrowDirection"]);

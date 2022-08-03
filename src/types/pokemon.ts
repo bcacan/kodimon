@@ -31,3 +31,12 @@ export interface ButtonProps {
   onClick(): void;
   disabled?: boolean;
 }
+
+export interface IanimatePoke {
+  side: string;
+  miss: number;
+  damage: number;
+}
+export interface IanimatePokeFun {
+  (animatePoke: IanimatePoke): Promise<void>;
+}

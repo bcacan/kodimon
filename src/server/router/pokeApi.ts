@@ -2,7 +2,7 @@ import { createRouter } from "./context";
 import { number, z } from "zod";
 import axios from "axios";
 import { PokemonInfo, PokemonsObj, IState } from "../../types/pokemon";
-import { randomID, round2Decimals } from "../../utils/math";
+import { randomPokeID, round2Decimals } from "../../utils/math";
 
 const State = new Map<number, IState>();
 
@@ -56,7 +56,7 @@ export const pokeApiRouter = createRouter()
       const userState = State.get(input.userID)!;
       if (!userState.pokemons || !userState.turn) return null;
 
-      const { activePokemon, inactivePokemon } = whoIsOnTurn(userState)!;
+      const { activePokemon, inactivePokemon, animatePokemon } = whoIsOnTurn(userState)!;
 
       userState.turn++;
 
@@ -74,6 +74,7 @@ export const pokeApiRouter = createRouter()
       // Check miss chance
       if (Math.random() < MISS_CHANCE * missMultiplier)
         return {
+          animatePoke: { side: animatePokemon, miss: 1, damage: 0 },
           endGame: userState.endGame,
           newTurn: userState.turn,
           logMsg: `${activePokemon.name} missed ${inactivePokemon.name}`,
@@ -101,6 +102,7 @@ export const pokeApiRouter = createRouter()
       }
 
       return {
+        animatePoke: { side: animatePokemon, miss: 0, damage: effectiveAttack },
         endGame: userState.endGame,
         newTurn: userState.turn,
         logMsg: `${activePokemon.name} attacked ${inactivePokemon.name} for ${effectiveAttack} dmg${deadMsg}`,
@@ -169,7 +171,7 @@ const getTwoPokemons = async () => {
 };
 
 const fetchPokemon = async (takenID?: number) => {
-  const id = randomID();
+  const id = randomPokeID();
 
   // Check if new ID is same as input ID (first poke)
   if (id === takenID) fetchPokemon(takenID);
@@ -199,5 +201,8 @@ const whoIsOnTurn = (userState: IState) => {
   const activePokemon = oddTurn ? firstToAttack : secondToAttack;
   const inactivePokemon = oddTurn ? secondToAttack : firstToAttack;
 
-  return { activePokemon, inactivePokemon };
+  // Animate left or right poke
+  const animatePokemon = activePokemon === userState.pokemons.first ? "first" : "second";
+
+  return { activePokemon, inactivePokemon, animatePokemon };
 };
