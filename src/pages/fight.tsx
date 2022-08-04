@@ -10,10 +10,12 @@ import { Button } from "../components/Button";
 import { Menu } from "../components/Menu";
 import { Spinner } from "../components/Spinner";
 import { randomUserID, getRandomNum } from "../utils/math";
+import { cursorTo } from "readline";
 
 const logs = atom("");
 const initLogs = atom("");
 const uidState = atom(randomUserID());
+const damageInfo = atom({ show: false, text: "", position: [0, 0], rotation: 0 });
 
 export const modal = atom({ open: false, wonName: "", wonPlayer: false });
 
@@ -110,24 +112,7 @@ const PokeStage = () => {
   const [stylesFirstPoke, animateFirstPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
   const [stylesSecondPoke, animateSecondPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
 
-  // Damage message state and ref
-  const damageMsg = useRef({ text: "", position: [0, 0], rotation: 0 });
-  const [showDamage, setDamage] = useState(false);
-  // Damage message transition
-  const transitions = useTransition(showDamage, {
-    from: {
-      opacity: 0,
-      x: damageMsg.current.position[0],
-      y: damageMsg.current.position[1],
-      rotate: damageMsg.current.rotation,
-    },
-    enter: { opacity: 1 },
-    leave: { opacity: 0 },
-    //reverse: showDamage,
-    delay: 200,
-    config: config.wobbly,
-    onRest: () => setDamage(false),
-  });
+  const [, setDamageMsg] = useAtom(damageInfo);
 
   // Fun that animates: "active pokemon attacks another one" and display applied damage message
   const animateAttack = async (animatePoke: IanimatePoke) => {
@@ -157,10 +142,12 @@ const PokeStage = () => {
           y: miss ? getRandomNum(40, 100) : -passP.y / 10,
           config: config.stiff,
           onRest: () => {
-            damageMsg.current.text = miss ? "Miss!" : `${damage}dmg!`;
-            damageMsg.current.position = [goToX / 3.5, goToY * -0.65];
-            damageMsg.current.rotation = checkSide ? -30 : 30;
-            setDamage(true);
+            setDamageMsg({
+              show: true,
+              text: miss ? "Miss!" : `${damage}dmg!`,
+              position: [goToX / 3.5, goToY * -0.65],
+              rotation: checkSide ? -30 : 30,
+            });
           },
         },
         // { x: goToX / 3, y: goToY / 2 },
@@ -189,22 +176,40 @@ const PokeStage = () => {
           stylesPoke={stylesSecondPoke}
           pokeInfo={state.data?.pokemons.second}
         />
-        {transitions(
-          (styles, item) =>
-            item && (
-              <animated.span
-                style={styles}
-                className="absolute text-lg text-red font-bold"
-              >
-                {damageMsg.current.text}
-              </animated.span>
-            ),
-        )}
+
+        <DamageInfo />
       </div>
     </>
   );
 };
 
+const DamageInfo = () => {
+  const [damageMsg, setDamageMsg] = useAtom(damageInfo);
+  // Damage message state and ref
+  // const [showDamage, setDamage] = useState(false);
+  // Damage message transition
+  const [stylesDamage, animateDamage] = useSpring({}, []);
+
+  if (!damageMsg.show === true) return null;
+  animateDamage.start({
+    from: {
+      opacity: 0,
+      x: damageMsg.position[0],
+      y: damageMsg.position[1],
+      rotate: damageMsg.rotation,
+    },
+    to: { opacity: 1 },
+    //reverse: showDamage,
+    delay: 200,
+    config: config.wobbly,
+    onRest: () => animateDamage.start({ to: { opacity: 0 } }),
+  });
+  return (
+    <animated.span style={stylesDamage} className="absolute text-lg text-red font-bold">
+      {damageMsg.text}
+    </animated.span>
+  );
+};
 const ShowPokemon = (
   { pokeInfo, forwardedRef, stylesPoke }: any /*{
   pokeInfo: PokemonInfo;
@@ -228,11 +233,20 @@ const ShowPokemon = (
     const { hp, fullHp } = statsSide;
     let hpPercentage = Math.round((hp / fullHp) * 100);
 
-    animateHPbar.start({
-      to: { width: `${hpPercentage}%` },
-      delay: 300,
-      config: config.slow,
-    });
+    if (!stylesHPbar.width) {
+      animateHPbar.start({
+        to: { width: `${hpPercentage}%` },
+        delay: 300,
+        config: config.slow,
+      });
+    } else if (stylesHPbar.width.get() !== `${hpPercentage}%`) {
+      animateHPbar.start({
+        from: { width: stylesHPbar.width.get() },
+        to: { width: `${hpPercentage}%` },
+        delay: 300,
+        config: config.slow,
+      });
+    }
 
     // Set color of HP bar
     let barBgColor,
