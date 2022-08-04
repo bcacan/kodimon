@@ -1,7 +1,7 @@
 import { createRouter } from "./context";
-import { number, z } from "zod";
+import { z } from "zod";
 import axios from "axios";
-import { PokemonInfo, PokemonsObj, IState } from "../../types/pokemon";
+import { PokemonInfo, IState } from "../../types/pokemon";
 import { randomPokeID, round2Decimals } from "../../utils/math";
 
 const State = new Map<number, IState>();

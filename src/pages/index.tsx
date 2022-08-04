@@ -1,9 +1,6 @@
 import type { NextPage } from "next";
-import Head from "next/head";
-import Link from "next/link";
 import router from "next/router";
 import { Button } from "../components/Button";
-import { Spinner } from "../components/Spinner";
 
 const Home: NextPage = () => {
   return (

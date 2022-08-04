@@ -1,16 +1,15 @@
 import dynamic from "next/dynamic";
 import type { NextPage } from "next";
-import Head from "next/head";
 import { trpc } from "../utils/trpc";
-import { IanimatePoke, IanimatePokeFun } from "../types/pokemon";
 import { useEffect, useRef, useState } from "react";
+import { IanimatePoke, IanimatePokeFun } from "../types/pokemon";
 import { atom, useAtom } from "jotai";
+import { animated, config, useSpring, useTransition } from "@react-spring/web";
 import Modal from "react-modal";
 import { Button } from "../components/Button";
 import { Menu } from "../components/Menu";
-import { randomUserID, getRandomNum } from "../utils/math";
-import { animated, useSpring, useSpringRef, useTransition } from "@react-spring/web";
 import { Spinner } from "../components/Spinner";
+import { randomUserID, getRandomNum } from "../utils/math";
 
 const logs = atom("");
 const initLogs = atom("");
@@ -125,8 +124,8 @@ const PokeStage = () => {
     enter: { opacity: 1 },
     leave: { opacity: 0 },
     //reverse: showDamage,
-    delay: 450,
-    //config: config.molasses,
+    delay: 200,
+    config: config.wobbly,
     onRest: () => setDamage(false),
   });
 
@@ -151,6 +150,12 @@ const PokeStage = () => {
         {
           x: goToX / 3,
           y: goToY,
+          config: config.default,
+        },
+        {
+          x: goToX,
+          y: miss ? getRandomNum(40, 100) : -passP.y / 10,
+          config: config.stiff,
           onRest: () => {
             damageMsg.current.text = miss ? "Miss!" : `${damage}dmg!`;
             damageMsg.current.position = [goToX / 3.5, goToY * -0.65];
@@ -159,10 +164,10 @@ const PokeStage = () => {
             setDamage(true);
           },
         },
-        { x: goToX, y: miss ? getRandomNum(40, 100) : -passP.y / 10 },
-        { x: goToX / 3, y: goToY },
-        { x: 0, y: 0 },
+        // { x: goToX / 3, y: goToY / 2 },
+        { x: 0, y: 0, config: config.default },
       ],
+      config: config.stiff,
     })[0];
   };
 
@@ -227,6 +232,7 @@ const ShowPokemon = (
     animateHPbar.start({
       to: { width: `${hpPercentage}%` },
       delay: 300,
+      config: config.slow,
     });
 
     // Set color of HP bar
