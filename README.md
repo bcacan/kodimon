@@ -1,12 +1,16 @@
 # Kodimon
 
-> Fullstack challange to create a Pokemon battle game.
+![kodimon-promo](https://user-images.githubusercontent.com/73470112/182820288-9b0f8544-683e-4e52-8f3a-06643bb291aa.gif)
+
+
+_Fullstack challange to create a Pokemon battle game._
+> Pokemon provided by [PokeAPI](https://pokeapi.co/)
 
 ## Run project
 
 ### Online
 
-> Check out [live Kodimon](http://kodimon.cacan.dev/)
+> **Check out [live Kodimon](http://kodimon.cacan.dev/)**
 
 ### Local
 
