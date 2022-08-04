@@ -10,6 +10,7 @@ import { Button } from "../components/Button";
 import { Menu } from "../components/Menu";
 import { randomUserID, getRandomNum } from "../utils/math";
 import { animated, useSpring, useSpringRef, useTransition } from "@react-spring/web";
+import { Spinner } from "../components/Spinner";
 
 const logs = atom("");
 const initLogs = atom("");
@@ -44,11 +45,7 @@ const FightScreen: NextPage = () => {
 
   return (
     <>
-      <Head>
-        <title> - Poke Fight</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <div className="container h-screen m-auto grid place-items-center">
+      <div className="container h-screen m-auto grid place-items-center lg:w-9/12 ">
         {/* <button className="m-2 p-2 block bg-blue">click</button> */}
         <main className="container mx-auto flex flex-col items-center p-4 gap-y-20">
           {/* 
@@ -58,7 +55,7 @@ const FightScreen: NextPage = () => {
             state.status
           )} */}
           <PokeStage />
-          <div className="w-10/12 flex flex-row items-start gap-4">
+          <div className="container flex lg:flex-row flex-col m-auto items-start gap-6 p-4 lg:px-10  ">
             <Menu />
             <LogBox />
           </div>
@@ -115,7 +112,7 @@ const PokeStage = () => {
   const [stylesSecondPoke, animateSecondPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
 
   // Damage message state and ref
-  const damageMsg = useRef({ text: "", position: [0, 0] });
+  const damageMsg = useRef({ text: "", position: [0, 0], rotation: 0 });
   const [showDamage, setDamage] = useState(false);
   // Damage message transition
   const transitions = useTransition(showDamage, {
@@ -123,6 +120,7 @@ const PokeStage = () => {
       opacity: 0,
       x: damageMsg.current.position[0],
       y: damageMsg.current.position[1],
+      rotate: damageMsg.current.rotation,
     },
     enter: { opacity: 1 },
     leave: { opacity: 0 },
@@ -155,7 +153,8 @@ const PokeStage = () => {
           y: goToY,
           onRest: () => {
             damageMsg.current.text = miss ? "Miss!" : `${damage}dmg!`;
-            damageMsg.current.position = [goToX / 3.5, goToY / -1.5];
+            damageMsg.current.position = [goToX / 3.5, goToY * -0.65];
+            damageMsg.current.rotation = checkSide ? -30 : 30;
             console.log(goToX, goToY);
             setDamage(true);
           },
@@ -167,7 +166,7 @@ const PokeStage = () => {
     })[0];
   };
 
-  if (state.isLoading || !state.data?.pokemons) return <>loading</>;
+  if (state.isLoading || !state.data?.pokemons) return <Spinner />;
   return (
     <>
       <div className="w-full flex justify-evenly">
@@ -176,7 +175,7 @@ const PokeStage = () => {
           stylesPoke={stylesFirstPoke}
           pokeInfo={state.data?.pokemons.first}
         />
-        <div className="flex flex-col justify-center gap-8">
+        <div className="flex flex-col shrink justify-center gap-8">
           <Arrow />
 
           <AttackButton animateFun={animateAttack} />
@@ -189,7 +188,10 @@ const PokeStage = () => {
         {transitions(
           (styles, item) =>
             item && (
-              <animated.span style={styles} className="absolute text-red font-bold">
+              <animated.span
+                style={styles}
+                className="absolute text-lg text-red font-bold"
+              >
                 {damageMsg.current.text}
               </animated.span>
             ),
@@ -217,7 +219,7 @@ const ShowPokemon = (
       refetchOnWindowFocus: false,
     });
 
-    if (stats.isLoading || !stats.data) return <></>;
+    if (stats.isLoading || !stats.data) return null;
     const statsSide = side === "left" ? stats.data.first : stats.data.second;
     const { hp, fullHp } = statsSide;
     let hpPercentage = Math.round((hp / fullHp) * 100);
@@ -261,12 +263,12 @@ const ShowPokemon = (
       refetchOnWindowFocus: false,
       //enabled: false, // disable this query from automatically running (on pageload)
     });
-    if (stats.isLoading || !stats.data?.first || !stats.data?.second) return <></>;
+    if (stats.isLoading || !stats.data?.first || !stats.data?.second) return <Spinner />;
     const statsSide = side === "left" ? stats.data.first : stats.data.second;
     const { hp, attack, defense, speed } = statsSide;
 
     return (
-      <div className="py-4 px-6 border-2 border-yellow rounded-2xl bg-yellow-light">
+      <div className="text-sm md:text-base py-4 px-4 md:px-6 border-2 border-yellow rounded-2xl bg-yellow-light">
         <div>HP: {hp}</div>
         <div>Attack: {attack}</div>
         <div>Defense: {defense}</div>
@@ -310,7 +312,9 @@ const Arrow = () => {
     <>
       {!isLoading ? (
         <animated.img src="/assets/arrow.svg" style={stylesArrow} className={"mx-auto"} />
-      ) : null}
+      ) : (
+        <Spinner />
+      )}
     </>
   );
 };
@@ -364,7 +368,7 @@ const AttackButton = ({ animateFun }: { animateFun: IanimatePokeFun }) => {
       {!isLoading ? (
         <Button text="Attack!" onClick={() => doAttack()} disabled={!yourTurn} />
       ) : (
-        "loading"
+        <Spinner />
       )}
     </>
   );
@@ -384,7 +388,7 @@ const LogBox = () => {
       value={initText + logsText}
       disabled
       rows={10}
-      className="w-6/12 ml-auto overflow-y-scroll scrollbar p-6 bg-yellow-light border-solid border-2 border-yellow rounded-xl"
+      className="container text-sm md:text-base order-first lg:order-last lg:w-6/12 lg:ml-auto overflow-y-scroll scrollbar md:p-6 p-4 bg-yellow-light border-solid border-2 border-yellow rounded-xl"
     ></textarea>
   );
 };

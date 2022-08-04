@@ -7,7 +7,7 @@ export const Button = (props: ButtonProps) => {
     <button
       onClick={onClick}
       disabled={disabled}
-      className="p-2 px-16 rounded-full ring-4 ring-blue-light bg-blue text-white enabled:hover:ring-2 disabled:opacity-30"
+      className="mx-2 p-2 md:px-16 px-8 rounded-full ring-4 ring-blue-light bg-blue text-white enabled:hover:ring-2 disabled:opacity-30"
     >
       {text}
     </button>
