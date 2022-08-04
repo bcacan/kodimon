@@ -160,7 +160,6 @@ const PokeStage = () => {
             damageMsg.current.text = miss ? "Miss!" : `${damage}dmg!`;
             damageMsg.current.position = [goToX / 3.5, goToY * -0.65];
             damageMsg.current.rotation = checkSide ? -30 : 30;
-            console.log(goToX, goToY);
             setDamage(true);
           },
         },
@@ -255,7 +254,7 @@ const ShowPokemon = (
         <div className={`border-solid border-2 rounded-2xl ${barBorderColor}`}>
           <animated.div
             style={stylesHPbar}
-            className={`h-2.5 rounded-2xl ${barBgColor}`}
+            className={`h-2.5 rounded-2xl ${barBgColor} w-auto `}
           ></animated.div>
         </div>
       </div>

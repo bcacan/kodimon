@@ -23,7 +23,6 @@ export const pokeApiRouter = createRouter()
       const userState = State.get(input.userID)!;
       const msg = `${userState.pokemons.first.name} and ${userState.pokemons.second.name} appeared`;
 
-      console.log("state:", State);
       return { logMsg: msg };
     },
   })

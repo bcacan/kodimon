@@ -1,41 +1,82 @@
-### Questions:
+# Kodimon
 
-- [ ] Is stats array from API always in same order.
-- [ ] Find HD images but pokemons must look in same direction
-- [x] Add replacement if poke image is missing
-- [x] Defense >=100 problem
+> Fullstack challange to create a Pokemon battle game.
 
-#
+## Run project
 
-# Changelog
+### Online
 
-## # 2022/7/30
+> Check out [live Kodimon](http://kodimon.cacan.dev/)
 
-### Added
+### Local
 
-- Specs' assets, font and colors
-- Button component
+<details>
+  <summary>How to start project locally</summary> 
+  
+- Clone repository
+- Install project with
+  ```sh
+  npm install
+  ```
+- Start development mode with
+  ```sh
+  npm run dev
+  ```
+- Build and start production with
+  ```sh
+  npm run build
+  npm run start
+  ```
 
-### Changed
+</details>
 
-- Styling
+## Frontend challange
 
-## # 2022/7/29
+- [x] Create two screens
+- [x] Fetch and display two random Pokemons
+- [x] Display stats data
+- [x] Display all actions in Logs
+- [x] Update HP bar
+- [x] Display popup on end-game
+  - [ ] Option to start newgame with Pokemon who won
+- [x] Styling and animating UI
 
-### Added
+## Backend challange
 
-- State
-- Logs
+- [x] Fetching data and providing it to frontend
+- [x] Calculating all battle logic
+- [ ] Login and register users
+- [ ] Store battle histories
 
-## # 2022/7/28
+## State management
 
-### Added
+- Serverside state
+  - State in initialized with user assigned id, per game, when user starts game
+  - Game state is written and read in Map object only
+- Local state
+  - React Query fetches data from backend (tRPC)
+  - Using Jotai to store&update local state where/if prop drilling is needed
 
-- fetching (backend) & displaying (frontend) two random pokemons
-- Created create-t3-app@latest w/ tRPC & tailwindCSS options
+## Game logic
 
-#
+- Faster pokemon attacks first
+- Pokemon has 20% chance to miss attack
+- Damage pokemon do is half-attack lowered by another's pokemon defense as percentage
+- Caveat solutions: If pokemon has defense 100+, defense is halved but opponent's miss-chance is doubled
 
-# Create T3 App
+# Tech Stack
 
-This is an app bootstrapped according to the [init.tips](https://init.tips) stack, also known as the T3-Stack.
+> ### Create T3 App
+>
+> This app is bootstrapped according to the [init.tips](https://init.tips/#about) stack, also known as the [T3-Stack](https://create.t3.gg/).
+
+## Tools / Dependencies
+
+- [Next.js](https://nextjs.org/)
+- [tRPC](https://trpc.io/)
+- [React Query](https://react-query-v3.tanstack.com/)
+- [Axios](https://axios-http.com/)
+- [Jotai](https://jotai.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [react-spring](https://react-spring.dev/)
+- [react-modal](https://github.com/reactjs/react-modal)
