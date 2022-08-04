@@ -10,10 +10,15 @@ export const Menu = () => {
     <div className="mx-auto px-11 py-9 border-2 border-yellow rounded-2xl bg-yellow-light flex flex-col gap-6">
       <Button text="Home" onClick={() => router.push("/")} />
       <Button
-        onClick={() => setModalOpen((curr) => ({ ...curr, open: false }))}
+        onClick={() => {
+          setModalOpen((curr) => ({ ...curr, open: false }));
+          router.reload();
+        }}
         text="New game"
       />
-      {modalOpen.wonPlayer ? <Button text="New opponent" onClick={() => 1} /> : null}
+      {modalOpen.wonPlayer ? (
+        <Button disabled text="New opponent" onClick={() => 1} />
+      ) : null}
     </div>
   );
 };
