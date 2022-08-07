@@ -1,8 +1,14 @@
 import dynamic from "next/dynamic";
 import type { NextPage } from "next";
 import { trpc } from "../utils/trpc";
-import { useEffect, useRef, useState } from "react";
-import { IanimatePoke, IanimatePokeFun } from "../types/pokemon";
+import { forwardRef, RefObject, useEffect, useRef, useState } from "react";
+import {
+  IanimatePoke,
+  IanimatePokeFun,
+  IstylesDamage,
+  IstylesPoke,
+  PokemonInfo,
+} from "../types/pokemon";
 import { atom, useAtom } from "jotai";
 import { animated, config, useSpring, useTransition } from "@react-spring/web";
 import Modal from "react-modal";
@@ -15,7 +21,6 @@ import { cursorTo } from "readline";
 const logs = atom("");
 const initLogs = atom("");
 const uidState = atom(randomUserID());
-const damageInfo = atom({ show: false, text: "", position: [0, 0], rotation: 0 });
 
 export const modal = atom({ open: false, wonName: "", wonPlayer: false });
 
@@ -112,12 +117,16 @@ const PokeStage = () => {
   const [stylesFirstPoke, animateFirstPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
   const [stylesSecondPoke, animateSecondPoke] = useSpring({ from: { x: 0, y: 0 } }, []);
 
-  const [, setDamageMsg] = useAtom(damageInfo);
+  // Damage message transition
+  const damageRef = useRef<HTMLDivElement>(null);
+  const [stylesDamage, animateDamage] = useSpring(
+    { top: 0, left: 0, opacity: 0, rotate: 0, text: "" },
+    [],
+  );
 
   // Fun that animates: "active pokemon attacks another one" and display applied damage message
   const animateAttack = async (animatePoke: IanimatePoke) => {
     const { side, miss, damage } = animatePoke;
-
     const checkSide = side === "first";
     const animatedP = checkSide ? firstPokeRef : secondPokeRef;
     const passiveP = checkSide ? secondPokeRef : firstPokeRef;
@@ -142,15 +151,23 @@ const PokeStage = () => {
           y: miss ? getRandomNum(40, 100) : -passP.y / 10,
           config: config.stiff,
           onRest: () => {
-            setDamageMsg({
-              show: true,
-              text: miss ? "Miss!" : `${damage}dmg!`,
-              position: [goToX / 3.5, goToY * -0.65],
-              rotation: checkSide ? -30 : 30,
+            // animate damage message
+            animateDamage.start({
+              to: [
+                { text: miss ? "Miss!" : `${damage}dmg!`, immediate: true },
+                {
+                  left: checkSide ? passP.x - passP.width / 3 : passP.x + passP.width,
+                  top: passP.height * 0.8,
+                  rotate: checkSide ? -30 : 30,
+                  immediate: true,
+                  delay: 500,
+                },
+                { opacity: 1, delay: 200 },
+                { opacity: 0, delay: 700 },
+              ],
             });
           },
         },
-        // { x: goToX / 3, y: goToY / 2 },
         { x: 0, y: 0, config: config.default },
       ],
       config: config.stiff,
@@ -168,54 +185,27 @@ const PokeStage = () => {
         />
         <div className="flex flex-col shrink justify-center gap-8">
           <Arrow />
-
-          <AttackButton animateFun={animateAttack} />
+          <AttackButton animateFun={animateAttack} stylesDamage={stylesDamage} />
         </div>
         <ShowPokemon
           forwardedRef={secondPokeRef}
           stylesPoke={stylesSecondPoke}
           pokeInfo={state.data?.pokemons.second}
         />
-
-        <DamageInfo />
       </div>
     </>
   );
 };
 
-const DamageInfo = () => {
-  const [damageMsg, setDamageMsg] = useAtom(damageInfo);
-  // Damage message state and ref
-  // const [showDamage, setDamage] = useState(false);
-  // Damage message transition
-  const [stylesDamage, animateDamage] = useSpring({}, []);
-
-  if (!damageMsg.show === true) return null;
-  animateDamage.start({
-    from: {
-      opacity: 0,
-      x: damageMsg.position[0],
-      y: damageMsg.position[1],
-      rotate: damageMsg.rotation,
-    },
-    to: { opacity: 1 },
-    //reverse: showDamage,
-    delay: 200,
-    config: config.wobbly,
-    onRest: () => animateDamage.start({ to: { opacity: 0 } }),
-  });
-  return (
-    <animated.span style={stylesDamage} className="absolute text-lg text-red font-bold">
-      {damageMsg.text}
-    </animated.span>
-  );
-};
-const ShowPokemon = (
-  { pokeInfo, forwardedRef, stylesPoke }: any /*{
+const ShowPokemon = ({
+  pokeInfo,
+  forwardedRef,
+  stylesPoke,
+}: {
   pokeInfo: PokemonInfo;
-  forwardedRef: RefObject;
-}*/,
-) => {
+  forwardedRef: RefObject<HTMLDivElement>;
+  stylesPoke: IstylesPoke;
+}) => {
   const { name, img, side /*, stats*/ } = pokeInfo;
   const flipImg = side === "left";
 
@@ -232,21 +222,11 @@ const ShowPokemon = (
     const statsSide = side === "left" ? stats.data.first : stats.data.second;
     const { hp, fullHp } = statsSide;
     let hpPercentage = Math.round((hp / fullHp) * 100);
-
-    if (!stylesHPbar.width) {
-      animateHPbar.start({
-        to: { width: `${hpPercentage}%` },
-        delay: 300,
-        config: config.slow,
-      });
-    } else if (stylesHPbar.width.get() !== `${hpPercentage}%`) {
-      animateHPbar.start({
-        from: { width: stylesHPbar.width.get() },
-        to: { width: `${hpPercentage}%` },
-        delay: 300,
-        config: config.slow,
-      });
-    }
+    animateHPbar.start({
+      to: { width: `${hpPercentage}%` },
+      delay: 300,
+      config: config.slow,
+    });
 
     // Set color of HP bar
     let barBgColor,
@@ -280,7 +260,6 @@ const ShowPokemon = (
 
     const stats = trpc.useQuery(["pokeApi.getStats", { userID: uid }], {
       refetchOnWindowFocus: false,
-      //enabled: false, // disable this query from automatically running (on pageload)
     });
     if (stats.isLoading || !stats.data?.first || !stats.data?.second) return <Spinner />;
     const statsSide = side === "left" ? stats.data.first : stats.data.second;
@@ -338,7 +317,13 @@ const Arrow = () => {
   );
 };
 
-const AttackButton = ({ animateFun }: { animateFun: IanimatePokeFun }) => {
+const AttackButton = ({
+  animateFun,
+  stylesDamage,
+}: {
+  animateFun: IanimatePokeFun;
+  stylesDamage: IstylesDamage;
+}) => {
   const utils = trpc.useContext();
   const attack = trpc.useMutation(["pokeApi.attack"]);
   const [, setLogs] = useAtom(logs);
@@ -385,14 +370,29 @@ const AttackButton = ({ animateFun }: { animateFun: IanimatePokeFun }) => {
   return (
     <>
       {!isLoading ? (
-        <Button text="Attack!" onClick={() => doAttack()} disabled={!yourTurn} />
+        <Button
+          text="Attack!"
+          onClick={(e) => {
+            e.currentTarget.disabled = true;
+            doAttack();
+          }}
+          disabled={!yourTurn}
+        />
       ) : (
         <Spinner />
       )}
+      <DamageInfo stylesDamage={stylesDamage} />
     </>
   );
 };
 
+const DamageInfo = ({ stylesDamage }: { stylesDamage: IstylesDamage }) => {
+  return (
+    <animated.span style={stylesDamage} className="absolute text-lg text-red font-bold">
+      {stylesDamage.text.get()}
+    </animated.span>
+  );
+};
 const LogBox = () => {
   const [logsText, setLogs] = useAtom(logs);
   const [initText, setInitLogs] = useAtom(initLogs);

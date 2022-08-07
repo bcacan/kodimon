@@ -1,3 +1,5 @@
+import { SpringValue } from "@react-spring/web";
+
 export interface PokemonInfo {
   id: number;
   name: string;
@@ -30,7 +32,7 @@ export interface IState {
 
 export interface ButtonProps {
   text: string;
-  onClick(): void;
+  onClick(e?: any): void;
   disabled?: boolean;
 }
 
@@ -41,4 +43,17 @@ export interface IanimatePoke {
 }
 export interface IanimatePokeFun {
   (animatePoke: IanimatePoke): Promise<void>;
+}
+
+export interface IstylesPoke {
+  x: SpringValue<number>;
+  y: SpringValue<number>;
+}
+
+export interface IstylesDamage {
+  text: SpringValue<string>;
+  top: SpringValue<number>;
+  left: SpringValue<number>;
+  opacity: SpringValue<number>;
+  rotate: SpringValue<number>;
 }
