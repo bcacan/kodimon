@@ -72,7 +72,7 @@ _Fullstack challange to create a Pokemon battle game._
 
 > ### Create T3 App
 >
-> This app is bootstrapped according to the [init.tips](https://init.tips/#about) stack, also known as the [T3-Stack](https://create.t3.gg/).
+> This app is bootstrapped with [T3-Stack](https://create.t3.gg/).
 
 ## Tools / Dependencies
 
